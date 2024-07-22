@@ -2,7 +2,7 @@ from abc import *
 import os
 
 from helper.informer import Informer
-from tester import Tester
+from helper.tester import Tester
 
 class Analyser:
     @abstractmethod

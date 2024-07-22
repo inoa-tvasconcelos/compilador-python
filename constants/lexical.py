@@ -1,3 +1,7 @@
+from constants.informer import ERROR
+from helper.informer import Informer
+
+
 WHITESPACE = [' ', '\t', '\n', '\r', '\f', '\v']
 ACCEPTED_DIGIT_CHARS = ['.', "'"]
 ACCEPTED_WORD_CHARS = ['_', '-']
@@ -50,8 +54,24 @@ class KeyWords:
     AND_EQUAL = 38                      # &=
     OR_EQUAL = 39                       # |=
     EXPONENT = 40                       # **
+    LEXICAL_ERROR = 41                  # Represents a Error that is not raised
 
+    # Reserve types
+    ARRAY = 42
+    BREAK = 43
+    CONTINUE = 44
+    ELSE_IF = 47
+    FOR = 49
+    FUNCTION = 50
+    TRUE = 53
+    FALSE = 54
+    OF = 57
+    STRUCT = 59
+    TYPE = 60
+    
 
-    def is_keyword(self, token):
-        return token in self.__dict__.values()
-
+    def get(self, name):
+        try:
+            return getattr(KeyWords, name)
+        except:
+            return -1

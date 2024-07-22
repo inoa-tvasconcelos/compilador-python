@@ -1,4 +1,5 @@
 from helper.analyser import run_tests as run_analyser_tests
+from lexical.token_extractor import test_token_extractor as run_token_extractor_tests
 import sys
 sys.path.append("../")
 
@@ -25,7 +26,9 @@ def run_helper_tests():
     ])
 
 def run_lexical_tests():
-    run_test_template("lexical", [])
+    run_test_template("lexical", [
+        ("token_extractor", run_token_extractor_tests)
+    ])
 
 def run_syntactic_tests():
     run_test_template("syntactic", [])

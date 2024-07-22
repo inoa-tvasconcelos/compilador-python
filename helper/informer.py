@@ -26,12 +26,12 @@ class Informer:
 
     def get_message_prefix(self):
         if (self.severity == INFO):
-            return f"{self.specification} INFO"
+            return f"{self.specification}INFO"
         if (self.severity == WARNING):
-            return f"{self.specification} WARNING"
+            return f"{self.specification}WARNING"
         if (self.severity == ERROR):
-            return f"{self.specification} ERROR"
-        return f"{self.specification} SEVERITY LEVEL {self.severity}"
+            return f"{self.specification}ERROR"
+        return f"{self.specification}SEVERITY LEVEL {self.severity}"
     
     def parse_message(self, message):
         return f'{self.get_message_prefix()}: {message}'
