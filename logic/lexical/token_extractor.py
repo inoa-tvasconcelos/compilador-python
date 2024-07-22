@@ -306,7 +306,7 @@ def test_token_extractor():
         test_isolated_chars: True,
         test_mathmatical_operators: True,
         test_boolean_operators: True,
-    }, lambda test: test(), first_info='').printed_test("Token Extractor", end="\n")
+    }, lambda test: test(), first_info='', reset=True).printed_test("Token Extractor", end="\n")
 
 if __name__ == "__main__":
     test_token_extractor()

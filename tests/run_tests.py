@@ -1,7 +1,5 @@
 from helper.analyser import run_tests as run_analyser_tests
-from lexical.token_extractor import test_token_extractor as run_token_extractor_tests
-import sys
-sys.path.append("../")
+from logic.lexical.token_extractor import test_token_extractor as run_token_extractor_tests
 
 def protected_test(name, test_fn):
     print(f"Running {name} tests...")
