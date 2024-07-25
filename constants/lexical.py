@@ -55,7 +55,7 @@ class KeyWords:
     OR_EQUAL = 39                       # |=
     EXPONENT = 40                       # **
     LEXICAL_ERROR = 41                  # Represents a Error that is not raised
-
+    
     # Reserve types
     ARRAY = 42
     BREAK = 43
@@ -68,10 +68,25 @@ class KeyWords:
     OF = 57
     STRUCT = 59
     TYPE = 60
-    
+    VAR = 61
+    DO = 62
+    PLUS_PLUS = 63
+    MINUS_MINUS = 64
 
     def get(self, name):
         try:
             return getattr(KeyWords, name)
         except:
             return -1
+    def keyword_to_string(self, keyword):
+        for key, value in KeyWords.__dict__.items():
+            if value == keyword:
+                return key
+        return None
+
+TYPE_KEYWORDS = [
+    KeyWords.INTEGER,
+    KeyWords.STRING,
+    KeyWords.ARRAY,
+    KeyWords.STRUCT,    
+]

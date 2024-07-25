@@ -23,6 +23,14 @@ class TokenExtractor:
             tokens.append((token, index))
             token, index = self.next_token()
         return tokens
+    
+    def run_with_values(self):
+        tokens = []
+        token, index = self.next_token_with_value()
+        while token != KeyWords.EOF:
+            tokens.append((token, index))
+            token, index = self.next_token_with_value()
+        return tokens
 
     def next_token(self):
         char = self.ignore_whitespace()
@@ -116,8 +124,8 @@ class TokenExtractor:
         char = self.analyser.get_next_char()
         if (char == '='):
             value += '='
-        elif (char == "*" and operator == '*'):
-            value += '*'
+        elif (char == operator and char in ['+', '-', '*']):
+            value += char
         elif (char == operator):
             LexicalError("Unknown operator: " + value + char, position=self.analyser.get_current_index())
         else:
@@ -160,6 +168,10 @@ class TokenExtractor:
             return KeyWords.NOT_EQUAL, None
         if value == "**":
             return KeyWords.EXPONENT, None
+        if value == "++":
+            return KeyWords.PLUS_PLUS, None
+        if value == "--":
+            return KeyWords.MINUS_MINUS, None
         LexicalError("Unknown mathematical operator: " + value, position=self.analyser.get_current_index())
 
     def get_boolean_operator_token(self, operator):
@@ -202,6 +214,12 @@ def get_token_from_string(string):
     token_stack = TokenValueStack()
     extractor = TokenExtractor(analyser, token_stack)
     return extractor.next_token_with_value()
+
+def get_tokens_from_string(string):
+    analyser = TextAnalyser(string)
+    token_stack = TokenValueStack()
+    extractor = TokenExtractor(analyser, token_stack)
+    return extractor.run_with_values()
 
 def test_whitespace():
     tests = {
@@ -297,6 +315,18 @@ def test_boolean_operators():
     }
     return StackTester(tests, get_token_from_string).printed_test("Boolean Operators")
 
+def test_compositions():
+    tests = {
+        "123 test 'Hello, World!' : ; , [ ] { } ( ) . = == + += - ARRAY 103'23": [
+            (KeyWords.INTEGER, "123"), (ID, "test"), (KeyWords.STRING, "Hello, World!"), (KeyWords.COLON, None), (KeyWords.SEMICOLON, None),
+            (KeyWords.COMMA, None), (KeyWords.LEFT_SQUARE_BRACKET, None), (KeyWords.RIGHT_SQUARE_BRACKET, None), (KeyWords.LEFT_CURLY_BRACKET, None),
+            (KeyWords.RIGHT_CURLY_BRACKET, None), (KeyWords.LEFT_ROUND_BRACKET, None), (KeyWords.RIGHT_ROUND_BRACKET, None), (KeyWords.DOT, None),
+            (KeyWords.EQUAL, None), (KeyWords.EQUALITY, None), (KeyWords.PLUS, None), (KeyWords.PLUS_EQUAL, None), (KeyWords.MINUS, None),
+            (KeyWords.ARRAY, None), (KeyWords.INTEGER, "103'23")
+        ]
+    }
+    return StackTester(tests, get_tokens_from_string).printed_test("Compositions")
+
 def test_token_extractor():
     return StackTester({
         test_whitespace: True,
@@ -306,6 +336,7 @@ def test_token_extractor():
         test_isolated_chars: True,
         test_mathmatical_operators: True,
         test_boolean_operators: True,
+        test_compositions: True
     }, lambda test: test(), first_info='', reset=True).printed_test("Token Extractor", end="\n")
 
 if __name__ == "__main__":
