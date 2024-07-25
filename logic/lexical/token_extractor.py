@@ -295,7 +295,7 @@ def test_mathmatical_operators():
         "!": (KeyWords.NOT, None),
         "!=": (KeyWords.NOT_EQUAL, None),
         "**": (KeyWords.EXPONENT, None),
-        "++": (KeyWords.LEXICAL_ERROR, None),
+        "++": (KeyWords.PLUS_PLUS, None),
     }
     return StackTester(tests, get_token_from_string).printed_test("Mathmatical Operators")
 
