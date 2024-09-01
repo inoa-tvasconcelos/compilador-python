@@ -1,10 +1,9 @@
-# P -> LDE
-# LDE -> DE { DE }
-# DE -> DF | DT
-# T -> INTEGER | STRING | ... | ID
-# DT -> type ID = T | array [ INTEGER ] of T | struct { DC }
-# DC -> 
-
+# New block on start of function F( a, b )
+#                                 ^ Bota um MF, cria um NEW BLOCK
+# não cria novo bloco em {, cria no caso acima ou no caso de aparecer um B em um caso especifico
+# ou seja, bota o MF entre os caras qdo quer inicia o bloco.
+# Faz também IDU e IDD para diferenciar definição e utilização
+# a cada bloco que cria 
 from constants.lexical import TYPE_KEYWORDS, KeyWords
 from helper.informer import Informer
 
