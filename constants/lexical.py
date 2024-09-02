@@ -55,6 +55,7 @@ class KeyWords:
     OR_EQUAL = 39                       # |=
     EXPONENT = 40                       # **
     LEXICAL_ERROR = 41                  # Represents a Error that is not raised
+    RETURN = 65
     
     # Reserve types
     ARRAY = 42

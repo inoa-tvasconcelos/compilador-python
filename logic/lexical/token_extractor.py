@@ -40,7 +40,7 @@ class TokenExtractor:
             return self.get_number_token(char)
         if (is_alphabetical(char)):
             return self.get_word_token(char)
-        # I do not diferentiate between single and double quotes (so char is a type of string)
+        # I do not diferentiate between single and double quotes (so char is a type of string) 
         if (is_start_of_string(char)):
             return self.get_string_token(char)
         if (char in ISOLATED_CHARS):
@@ -64,6 +64,7 @@ class TokenExtractor:
         while(is_digit(digit) or digit in ACCEPTED_DIGIT_CHARS):
             value += digit
             digit = self.analyser.get_next_char()
+        self.analyser.revert_to_last_char()
         secondary_token = self.token_stack.store(value)
         return KeyWords.INTEGER, secondary_token
     
@@ -72,7 +73,8 @@ class TokenExtractor:
         while(is_alphabetical(char) or is_digit(char) or char in ACCEPTED_WORD_CHARS):
             value += char
             char = self.analyser.get_next_char()
-        keyword = KeyWords().get(value)
+        self.analyser.revert_to_last_char()
+        keyword = KeyWords().get(value.upper())
         if keyword != -1:
             return keyword, None
         secondary_token = self.token_stack.store(value)

@@ -39,6 +39,7 @@ class TextAnalyser(Analyser):
             char = self.text[self.index]
             self.index += 1
             return char
+        self.index += 1
         return ''
     
     def revert_to_last_char(self):

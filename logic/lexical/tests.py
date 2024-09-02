@@ -113,13 +113,20 @@ def test_boolean_operators():
 
 def test_compositions():
     tests = {
+        "function soma(a: integer,b: integer): integer {return a + b;}": [
+            (KeyWords.FUNCTION, None), (ID, "soma"), (KeyWords.LEFT_ROUND_BRACKET, None), (ID, "a"), 
+            (KeyWords.COLON, None), (KeyWords.INTEGER, None), (KeyWords.COMMA, None), (ID, "b"), 
+            (KeyWords.COLON, None), (KeyWords.INTEGER, None), (KeyWords.RIGHT_ROUND_BRACKET, None), (KeyWords.COLON, None),
+            (KeyWords.INTEGER, None), (KeyWords.LEFT_CURLY_BRACKET, None), (KeyWords.RETURN, None), (ID, "a"),
+            (KeyWords.PLUS, None), (ID, "b"), (KeyWords.SEMICOLON, None), (KeyWords.RIGHT_CURLY_BRACKET, None)
+        ],
         "123 test 'Hello, World!' : ; , [ ] { } ( ) . = == + += - ARRAY 103'23": [
             (KeyWords.INTEGER, "123"), (ID, "test"), (KeyWords.STRING, "Hello, World!"), (KeyWords.COLON, None), (KeyWords.SEMICOLON, None),
             (KeyWords.COMMA, None), (KeyWords.LEFT_SQUARE_BRACKET, None), (KeyWords.RIGHT_SQUARE_BRACKET, None), (KeyWords.LEFT_CURLY_BRACKET, None),
             (KeyWords.RIGHT_CURLY_BRACKET, None), (KeyWords.LEFT_ROUND_BRACKET, None), (KeyWords.RIGHT_ROUND_BRACKET, None), (KeyWords.DOT, None),
             (KeyWords.EQUAL, None), (KeyWords.EQUALITY, None), (KeyWords.PLUS, None), (KeyWords.PLUS_EQUAL, None), (KeyWords.MINUS, None),
             (KeyWords.ARRAY, None), (KeyWords.INTEGER, "103'23")
-        ]
+        ],
     }
     return StackTester(tests, get_tokens_from_string).printed_test("Compositions")
 
