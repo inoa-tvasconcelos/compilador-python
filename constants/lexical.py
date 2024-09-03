@@ -42,7 +42,7 @@ class KeyWords:
     XOR_EQUAL = 26                      # ^=
     BOOLEAN_AND = 27                    # &
     LOGICAL_AND = 28                    # &&
-    BOOLEAN_OR = 29                     # &
+    BOOLEAN_OR = 29                     # ||
     LOGICAL_OR = 30                     # |
     NOT = 31                            # !
     NOT_EQUAL = 32                      # !=
@@ -73,6 +73,7 @@ class KeyWords:
     DO = 62
     PLUS_PLUS = 63
     MINUS_MINUS = 64
+    IN = 65
 
     def get(self, name):
         try:
