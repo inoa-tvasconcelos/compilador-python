@@ -5,13 +5,15 @@
 # Faz também IDU e IDD para diferenciar definição e utilização
 # a cada bloco que cria 
 from constants.lexical import TYPE_KEYWORDS, KeyWords
+from constants.syntatical import *
 from helper.informer import Informer
 
-class SyntaticalError(Informer):
-    def __init__(self, message):
-        super().__init__(message, severity=Informer.ERROR, specification="Syntatical ")
 
 class IterativeSyntaticalAnalyser:
+    class SyntaticalError(Informer):
+        def __init__(self, message):
+            super().__init__(message+f" (index: {self.index})", severity=Informer.ERROR, specification="Syntatical ")
+
     def __init__(self, tokens):
         self.tokens = tokens
         self.index = 0
@@ -19,219 +21,331 @@ class IterativeSyntaticalAnalyser:
     def get_next_token(self):
         if self.index == len(self.tokens):
             return KeyWords.EOF
-        token = self.tokens[self.index]
+        self.token = self.tokens[self.index]
         self.index += 1
-        return token
+        return self
     
     def unget_token(self):
         self.index = max(0, self.index - 1)
+        self.token = self.tokens[self.index]
+        return self
 
     def expect(self, expected):
-        token = self.get_next_token()
-        if token != expected:
-            raise SyntaticalError(f"Expected {KeyWords().keyword_to_string(expected)} but got {KeyWords().keyword_to_string(token)}")
+        self.get_next_token()
+        if self.token != expected:
+            raise self.SyntaticalError(f"Expected {KeyWords().keyword_to_string(expected)} but got {KeyWords().keyword_to_string(self.token)}")
         return self
 
     def P(self):
         self.LDE()
-        return self
             
     def LDE(self):
-        last_token = self.DE()
-        while last_token != KeyWords.EOF:
-            last_token = self.DE()
+        self.DE()
+        while self.token != KeyWords.EOF:
+            self.DE()
         return self
 
     def DE(self):
-        token = self.get_next_token()
-        if token == KeyWords.TYPE:
+        self.get_next_token()
+        if self.token == KeyWords.TYPE:
             self.DT()
-        elif token == KeyWords.FUNCTION:
+        elif self.token == KeyWords.FUNCTION:
             self.DF()
         else:
-            raise SyntaticalError("Expected a type or a function definition")
+            raise self.SyntaticalError("Expected a type or a function definition")
+        return self
+    
+    def T(self):
+        self.get_next_token()
+        if self.token not in [KeyWords.ID] + TYPE_KEYWORDS:
+            raise self.SyntaticalError("Expected a type")
         return self
     
     def DT(self):
-        self.expect(KeyWords.ID).expect(KeyWords.EQUAL)
-        token = self.get_next_token()
-        if (token == KeyWords.ARRAY):
-            self.expect(KeyWords.LEFT_SQUARE_BRACKET).expect(KeyWords.INTEGER)\
-                .expect(KeyWords.RIGHT_SQUARE_BRACKET).expect(KeyWords.OF).T()
-        elif (token == KeyWords.STRUCT):
-            self.expect(KeyWords.LEFT_CURLY_BRACKET).DC().expect(KeyWords.RIGHT_CURLY_BRACKET)
+        self.expect(KeyWords.ID).expect(KeyWords.EQUAL).get_next_token()
+        if (self.token == KeyWords.ARRAY):
+            self.expect(KeyWords.LEFT_SQUARE_BRACKET)\
+                .expect(KeyWords.INTEGER)\
+                .expect(KeyWords.RIGHT_SQUARE_BRACKET)\
+                .expect(KeyWords.OF)\
+                .T()
+        elif (self.token == KeyWords.STRUCT):
+            self.expect(KeyWords.LEFT_CURLY_BRACKET)\
+                .DC()
         else:
-            self.T()
-        return self
-    
-    def DF(self):
-        self.expect(KeyWords.ID).expect(KeyWords.LEFT_ROUND_BRACKET)\
-            .LP().expect(KeyWords.RIGHT_ROUND_BRACKET).expect(KeyWords.COLON).T().B()
-        return self
-    
-    def LP(self):
-        # Allow empty parameter list
-        self.expect(KeyWords.ID).expect(KeyWords.COLON).T()
-        token = self.get_next_token()
-        while token != KeyWords.RIGHT_ROUND_BRACKET:
-            if token != KeyWords.ID:
-                raise SyntaticalError("Expected an identifier")
-            self.expect(KeyWords.COLON).T()
-            token = self.get_next_token()
-        self.unget_token()
-        return self
-
-    def T(self):
-        token = self.get_next_token()
-        if token not in [KeyWords.ID] + TYPE_KEYWORDS:
-            raise SyntaticalError("Expected a type")
-        return self
+            self.unget_token()\
+                .T()
+        return self.expect(KeyWords.SEMICOLON)
 
     def DC(self):
-        self.LI_T()
+        self.LI()\
+            .T()
         token = self.get_next_token()
-        while token == KeyWords.COMMA:
-            self.DC()
-            token = self.get_next_token()
-        self.unget_token()
-        return self
+        if token == KeyWords.SEMICOLON:
+            return self.DC()
+        if token == KeyWords.RIGHT_CURLY_BRACKET:
+            return self
+        raise self.SyntaticalError("Missing a right curly bracket or semicolon")
     
-    def LI_T(self):
-        self.LI().expect(KeyWords.COLON).T()        
-        return self
+    def DF(self):
+        return self.expect(KeyWords.ID)\
+            .expect(KeyWords.LEFT_ROUND_BRACKET)\
+            .LP()\
+            .expect(KeyWords.COLON)\
+            .T()\
+            .B()\
+            .expect(KeyWords.SEMICOLON)
+    
+    def LP(self):
+        self.expect(KeyWords.ID)\
+            .expect(KeyWords.COLON)\
+            .T()\
+            .get_next_token()
+        
+        if self.token == KeyWords.COMMA:
+            return self.LP()
+        if self.token == KeyWords.RIGHT_ROUND_BRACKET:
+            return self
+        raise self.SyntaticalError("Missing a comma or right round bracket")
     
     def LI(self):
-        self.expect(KeyWords.ID)
-        next_token = self.get_next_token()
-        while next_token == KeyWords.COMMA:
-            self.expect(KeyWords.ID)
-            next_token = self.get_next_token()
-        self.unget_token()
-        return self
+        return self.expect(KeyWords.ID)\
+            .LIV()
 
-    def B(self):
-        self.expect(KeyWords.LEFT_CURLY_BRACKET).LDV()\
-            .LS().expect(KeyWords.RIGHT_CURLY_BRACKET)
-        return self
+    def LIV(self):
+        self.get_next_token()
+        if self.token == KeyWords.COMMA:
+            return self.expect(KeyWords.ID)\
+                .LIV()
+        if self.token == KeyWords.COLON:
+            return self
+        raise self.SyntaticalError("Missing comma or colon")
 
-    def LDV(self):
-        next_token = self.get_next_token()
-        if next_token == KeyWords.VAR:
-            self.DV()
-        return self
+    def LIT(self):
+        return self.expect(KeyWords.ID)\
+            .LITV()
     
-    def DV(self):
-        self.LI_T().expect(KeyWords.SEMICOLON)
-        return self
-    
-    def LS(self):
-        self.S()
-        next_token = self.get_next_token()
-        while next_token != KeyWords.RIGHT_CURLY_BRACKET:
-            self.S()
-            next_token = self.get_next_token()
-        self.unget_token()
-        return self
-    
-    def S(self):
-        next_token = self.get_next_token()
-        if (next_token == KeyWords.IF):
-            self.expect(KeyWords.LEFT_ROUND_BRACKET).E()\
-                .expect(KeyWords.RIGHT_ROUND_BRACKET).S()
-            next_token = self.get_next_token()
-            if next_token == KeyWords.ELSE:
-                self.S()
-            else:
-                self.unget_token()
-        elif (next_token == KeyWords.WHILE):
-            self.expect(KeyWords.LEFT_ROUND_BRACKET).E()\
-                .expect(KeyWords.RIGHT_ROUND_BRACKET).S()
-        elif (next_token == KeyWords.DO):
-            self.S().expect(KeyWords.WHILE).expect(KeyWords.LEFT_ROUND_BRACKET).E()\
-                .expect(KeyWords.RIGHT_ROUND_BRACKET).expect(KeyWords.SEMICOLON)
-        elif (next_token == KeyWords.BREAK):
-            self.expect(KeyWords.SEMICOLON)
-        elif (next_token == KeyWords.CONTINUE):
-            self.expect(KeyWords.SEMICOLON)
-        elif (next_token == KeyWords.LEFT_CURLY_BRACKET):
-            self.B()
-        self.LV()
-        return self
+    def LITV(self):
+        self.get_next_token()
+        if self.token == KeyWords.COMMA:
+            return self.expect(KeyWords.ID)\
+                .LITV()
+        return self.unget_token().T()
+
+    def EXP(self):
+        self.L()\
+            .get_next_token()
+        if self.token in OPBO:
+            return self.EXP()
+        return self.unget_token()
     
     def E(self):
-        self.L()
-        next_token = self.get_next_token()
-        if next_token in [KeyWords.LOGICAL_AND, KeyWords.LOGICAL_OR]:
-            self.E()
-        return self
-
-    def L(self):
-        self.R()
-        next_token = self.get_next_token()
-        while next_token in [KeyWords.EQUALITY, KeyWords.NOT_EQUAL, KeyWords.LESS_THAN, KeyWords.LESS_THAN_EQUAL, KeyWords.GREATER_THAN, KeyWords.GREATER_THAN_EQUAL]:
-            self.R()
-            next_token = self.get_next_token()
-        self.unget_token()
+        return self.EXP().expect(KeyWords.RIGHT_ROUND_BRACKET)
     
-    def R(self):
-        self.Y()
-        next_token = self.get_next_token()
-        while next_token in [KeyWords.PLUS, KeyWords.MINUS]:
-            self.Y()
-            next_token = self.get_next_token()
-        self.unget_token()
-        return self
+    def ES(self):
+        return self.EXP().expect(KeyWords.RIGHT_SQUARE_BRACKET)
     
-    def Y(self):
-        self.F()
-        next_token = self.get_next_token()
-        while next_token in [KeyWords.MULTIPLY, KeyWords.DIVIDE, KeyWords.MODULO]:
-            self.F()
-            next_token = self.get_next_token()
-        self.unget_token()
-        return self
-    
-    def F(self):
-        next_token = self.get_next_token()
-        if next_token in [KeyWords.TRUE, KeyWords.FALSE, KeyWords.STRING, KeyWords.INTEGER]:
-            return self
-        elif next_token in [KeyWords.NOT, KeyWords.MINUS]:
-            self.F()
-        elif next_token == KeyWords.LEFT_ROUND_BRACKET:
-            self.E().expect(KeyWords.RIGHT_ROUND_BRACKET)
-        elif next_token == KeyWords.ID:
-            next_token = self.get_next_token()
-            if next_token == KeyWords.LEFT_ROUND_BRACKET:
-                self.LE().expect(KeyWords.RIGHT_ROUND_BRACKET)
-            else:
-                self.unget_token()
-                self.LV()
-                next_token = self.get_next_token()
-                if next_token not in [KeyWords.PLUS_PLUS, KeyWords.MINUS_MINUS]:
-                    SyntaticalError("Invalid mathmatical expression")
-        elif next_token in [KeyWords.PLUS_PLUS, KeyWords.MINUS_MINUS]:
-            self.LV()
-        else:
-            SyntaticalError("Invalid mathmatical expression")
-        return self
+    def EP(self):
+        return self.EXP().expect(KeyWords.SEMICOLON)
     
     def LE(self):
-        self.E()
-        next_token = self.get_next_token()
-        while next_token == KeyWords.COMMA:
-            self.E()
-            next_token = self.get_next_token()
-        self.unget_token()
-        return self
+        self.EXP()\
+            .get_next_token()
+        if self.token == KeyWords.COMMA:
+            return self.LE()
+        return self.expect(KeyWords.RIGHT_ROUND_BRACKET)
     
     def LV(self):
-        self.expect(KeyWords.ID)
-        next_token = self.get_next_token()
-        if next_token == KeyWords.LEFT_SQUARE_BRACKET:
-            self.E().expect(KeyWords.RIGHT_SQUARE_BRACKET)
-            return self
-        while next_token == KeyWords.DOT:
-            self.expect(KeyWords.ID)
-            next_token = self.get_next_token()
-        self.unget_token()
+        self.expect(KeyWords.ID)\
+            .get_next_token()
+        if self.token == KeyWords.DOT:
+            return self.LV()
+        if self.token == KeyWords.LEFT_ROUND_BRACKET:
+            return self.LE()
+        if self.token == KeyWords.LEFT_SQUARE_BRACKET:
+            return self.ES()
+        return self.unget_token()
+    
+    def OPEQ(self):
+        self.get_next_token()
+        if self.token not in OPEQ:
+            raise self.SyntaticalError("Equal operation missing")
         return self
+    
+    def EQ(self):
+        return self.LV()\
+            .OPEQ()\
+            .EP()
+    
+    def OPIT(self):
+        self.get_next_token()
+        if self.token not in OPIT:
+            raise self.SyntaticalError("Missing in or of keyword")
+        return self
+    
+    def I(self):
+        return self.expect(KeyWords.VAR)\
+            .expect(KeyWords.ID)\
+            .OPIT()\
+            .expect(KeyWords.ID)\
+            .expect(KeyWords.RIGHT_CURLY_BRACKET)
+    
+    def ELIF(self):
+        self.get_next_token()
+        if self.token == KeyWords.ELSE_IF:
+            return self.expect(KeyWords.RIGHT_ROUND_BRACKET)\
+                .E()\
+                .expect(KeyWords.LEFT_CURLY_BRACKET)\
+                .S()\
+                .ELIF()
+        if self.token == KeyWords.ELSE:
+            return self.expect(KeyWords.LEFT_CURLY_BRACKET)\
+                .S()\
+                .expect(KeyWords.SEMICOLON)
+        if self.token == KeyWords.SEMICOLON:
+            return self
+        raise self.SyntaticalError("Missing else, else_if or semicolon")
+    
+    def RE(self):
+        self.get_next_token()
+        if self.token == KeyWords.SEMICOLON:
+            return self
+        return self.EP()
+    
+    def S(self):
+        self.get_next_token()
+        if (self.token == KeyWords.IF):
+            return self.expect(KeyWords.LEFT_ROUND_BRACKET)\
+                .E()\
+                .expect(KeyWords.LEFT_CURLY_BRACKET)\
+                .S()\
+                .ELIF()\
+                .S()
+        elif (self.token == KeyWords.WHILE):
+            return self.expect(KeyWords.LEFT_ROUND_BRACKET)\
+                .E()\
+                .expect(KeyWords.LEFT_CURLY_BRACKET)\
+                .S()\
+                .expect(KeyWords.SEMICOLON)\
+                .S()
+        elif (self.token == KeyWords.DO):
+            return self.expect(KeyWords.LEFT_CURLY_BRACKET)\
+                .S()\
+                .expect(KeyWords.WHILE)\
+                .expect(KeyWords.LEFT_ROUND_BRACKET)\
+                .E()\
+                .expect(KeyWords.SEMICOLON)\
+                .S()
+        elif (self.token == KeyWords.FOR):
+            return self.expect(KeyWords.LEFT_ROUND_BRACKET)\
+                .I()\
+                .expect(KeyWords.LEFT_CURLY_BRACKET)\
+                .S()\
+                .expect(KeyWords.SEMICOLON)\
+                .S()
+        elif (self.token == KeyWords.VAR):
+            return self.LIT()\
+                .expect(KeyWords.SEMICOLON)\
+                .S()
+        elif (self.token in [KeyWords.BREAK, KeyWords.CONTINUE]):
+            return self.expect(KeyWords.SEMICOLON)\
+                .S()
+        elif (self.token == KeyWords.RETURN):
+            return self.RE()\
+                .S()
+        elif (self.token == KeyWords.RIGHT_CURLY_BRACKET):
+            return self
+        return self.EQ()\
+            .S()
+    
+    def L(self):
+        self.R()\
+            .get_next_token()
+        if self.token in OPDE:
+            return self.L()
+        return self.unget_token()
+        
+    
+    def R(self):
+        self.Y()\
+            .get_next_token()
+        if self.token in OPAR:
+            return self.R()
+        return self.unget_token()
+    
+    def Y(self):
+        self.BO()\
+            .get_next_token()
+        if self.token in OPMU:
+            return self.Y()
+        return self.unget_token()
+    
+    def BO(self):
+        self.F()\
+            .get_next_token()
+        if self.token in OPAB:
+            return self.BO()
+        return self.unget_token()
+    
+    def LPT(self):
+        self.get_next_token()
+        if self.token == KeyWords.COMMA:
+            return self.PT()\
+                .LPT()
+        if self.token == KeyWords.RIGHT_SQUARE_BRACKET:
+            return self
+        raise self.SyntaticalError("Missing comma or right square brackets")
+    
+    def VAL(self):
+        self.get_next_token()
+        if self.token == KeyWords.ID:
+            return self
+        return self.PT()
+    
+    def KVP(self):
+        return self.expect(KeyWords.STRING)\
+            .expect(KeyWords.COLON)\
+            .VAL()\
+            .KVPE()
+    
+    def KVPE(self):
+        self.get_next_token()
+        if self.token == KeyWords.RIGHT_CURLY_BRACKET:
+            return self
+        if self.token == KeyWords.COMMA:
+            return self.KVP()
+        raise self.SyntaticalError("Missing comma or right square brackets")
+        
+    def PT(self):
+        self.get_next_token()
+        if self.token in [KeyWords.TRUE, KeyWords.FALSE, KeyWords.STRING, KeyWords.INTEGER]:
+            return self
+        if self.token == KeyWords.LEFT_SQUARE_BRACKET:
+            return self.LPT()
+        if self.token == KeyWords.LEFT_CURLY_BRACKET:
+            return self.KVP()
+        raise self.SyntaticalError("Invalid, missing brackets or simple value1")
+    
+    def LVO(self):
+        self.get_next_token()
+        if self.token == KeyWords.ID:
+            self.unget_token()\
+                .LV()\
+                .get_next_token()
+            if self.token in [KeyWords.PLUS_PLUS, KeyWords.MINUS_MINUS]:
+                return self
+            return self.unget_token()
+        if self.token in [KeyWords.PLUS_PLUS, KeyWords.MINUS_MINUS]:
+            return self.LV()
+        raise self.SyntaticalError("Invalid missing keyword or ++ or --")
+    
+    def F(self):
+        self.get_next_token()
+        if self.token == KeyWords.LEFT_ROUND_BRACKET:
+            return self.E()
+        if self.token in [KeyWords.MINUS, KeyWords.NOT]:
+            return self.F()
+        if self.token in [KeyWords.TRUE, KeyWords.FALSE, KeyWords.STRING, KeyWords.INTEGER, KeyWords.LEFT_SQUARE_BRACKET, KeyWords.LEFT_CURLY_BRACKET]:
+            return self
+        return self.LVO()
+    

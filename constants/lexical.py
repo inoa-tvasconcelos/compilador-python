@@ -13,6 +13,7 @@ BOOLEAN_OPERATORS = ['&', '|', "^"]
 # Represents words that are not keywords
 ID = 0 
 class KeyWords:
+    ID = 0 
     INTEGER = 1                         # 10, 1.5 ...
     STRING = 2                          # "Hello, World!" or 'Hello, World!'
     EOF = 3                             # End of file
@@ -42,7 +43,7 @@ class KeyWords:
     XOR_EQUAL = 26                      # ^=
     BOOLEAN_AND = 27                    # &
     LOGICAL_AND = 28                    # &&
-    BOOLEAN_OR = 29                     # ||
+    BOOLEAN_OR = 29                     # &
     LOGICAL_OR = 30                     # |
     NOT = 31                            # !
     NOT_EQUAL = 32                      # !=
@@ -55,12 +56,15 @@ class KeyWords:
     OR_EQUAL = 39                       # |=
     EXPONENT = 40                       # **
     LEXICAL_ERROR = 41                  # Represents a Error that is not raised
+    IN = 42                             # in
+    OF = 43                             # of
     RETURN = 65
     
     # Reserve types
     ARRAY = 42
     BREAK = 43
     CONTINUE = 44
+    ELSE = 46
     ELSE_IF = 47
     FOR = 49
     FUNCTION = 50
@@ -73,7 +77,6 @@ class KeyWords:
     DO = 62
     PLUS_PLUS = 63
     MINUS_MINUS = 64
-    IN = 65
 
     def get(self, name):
         try:
