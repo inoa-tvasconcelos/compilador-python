@@ -19,6 +19,7 @@ class IterativeSyntaticalAnalyser:
         self.variable_buffer = []
         self.syntatical_variable_list = []
         self.details_buffer = {}
+        self.assigments = []
     
     def print_token(self):
         print(f'Token: {KeyWords().keyword_to_string(self.token[0])} = {self.token[1]}')

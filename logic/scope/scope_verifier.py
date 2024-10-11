@@ -1,10 +1,10 @@
 from constants.syntatical import *
 
-
 class Symbol:
-    def __init__(self, name, symbol_type):
+    def __init__(self, name, symbol_type, var_type=None):
         self.name = name
         self.symbol_type = symbol_type
+        self.var_type = var_type
         self.next = None
 
 class ScopeVerifier:
@@ -14,8 +14,8 @@ class ScopeVerifier:
         self.scope_stack = []
         self.current_level = -1  
         
-    def define(self, name, symbol_type):
-        symbol = Symbol(name, symbol_type)
+    def define(self, name, symbol_type, var_type=None):
+        symbol = Symbol(name, symbol_type, var_type)
         if len(self.scope_stack) <= self.current_level:
             self.scope_stack.append(None)
         
@@ -53,7 +53,7 @@ class ScopeVerifier:
         return None
 
     def build_stack(self):
-        for [secondary_token, current_level, type, details] in self.syntatical_variable_list:
+        for [secondary_token, current_level, type, var_type, details] in self.syntatical_variable_list:
             if current_level > self.current_level:
                 self.current_level = current_level
                 self.scope_stack.append(None)  
@@ -63,13 +63,13 @@ class ScopeVerifier:
                     self.current_level -= 1
 
             if type == 'VARIABLE_DECLARATION':
-                self.define(secondary_token, 'variable')
+                self.define(secondary_token, 'variable', var_type)
             elif type == 'VARIABLE_USAGE':
                 var = self.find(secondary_token)
                 if var is None:
                     raise ValueError(f"Não é encontrado no escopo o '{secondary_token}'.")
             elif type == 'FUNCTION_DECLARATION':
-                self.define(secondary_token, 'function')
+                self.define(secondary_token, 'function', var_type, details)
             elif type == 'FUNCTION_USAGE':
                 func = self.find(secondary_token)
                 if func is None:
