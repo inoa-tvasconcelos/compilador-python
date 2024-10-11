@@ -82,7 +82,7 @@ class TypeVerifier:
       if operator in [KeyWords.PLUS, KeyWords.MINUS, KeyWords.MULTIPLY, KeyWords.DIVIDE, KeyWords.EXPONENT]:
           if left_type == right_type and left_type in ['integer', 'float']:
               if operator == KeyWords.DIVIDE:
-                  return 'float'  # Division results in float
+                  return 'float'
               else:
                   return left_type
           else:
