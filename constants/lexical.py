@@ -28,7 +28,6 @@ class KeyWords:
     RIGHT_ROUND_BRACKET = 12            # )
     DOT = 13                            # .
     EQUAL = 14                          # =
-    EQUALITY = 15                       # ==
     PLUS = 15                           # +
     PLUS_EQUAL = 16                     # +=
     MINUS = 17                          # -
@@ -59,6 +58,8 @@ class KeyWords:
     IN = 42                             # in
     OF = 43                             # of
     WHILE = 44                          # while
+    EQUALITY = 45                       # ==
+    IF = 46                             # IF
     RETURN = 65                         # return
     
     # Reserve types
