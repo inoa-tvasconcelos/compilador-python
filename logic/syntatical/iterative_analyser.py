@@ -1,17 +1,12 @@
-# New block on start of function F( a, b )
-#                                 ^ Bota um MF, cria um NEW BLOCK
-# não cria novo bloco em {, cria no caso acima ou no caso de aparecer um B em um caso especifico
-# ou seja, bota o MF entre os caras qdo quer inicia o bloco.
-# Faz também IDU e IDD para diferenciar definição e utilização
-# a cada bloco que cria 
 from constants.lexical import TYPE_KEYWORDS, KeyWords
 from constants.syntatical import *
 from helper.informer import Informer
 
+class SyntaticalError(Informer):
+    def __init__(self, message, index):
+        super().__init__(message + f" (index: {index})", severity=Informer.ERROR, specification="Syntatical ")
+
 class IterativeSyntaticalAnalyser:
-    class SyntaticalError(Informer):
-        def __init__(self, message):
-            super().__init__(message+f" (index: {self.index})", severity=Informer.ERROR, specification="Syntatical ")
     def __init__(self, tokens):
         self.tokens = tokens
         self.index = 0
@@ -22,7 +17,7 @@ class IterativeSyntaticalAnalyser:
     
     def get_next_token(self):
         if self.index == len(self.tokens):
-            return KeyWords.EOF
+            return self
         self.token = self.tokens[self.index]
         self.index += 1
         return self
@@ -35,7 +30,7 @@ class IterativeSyntaticalAnalyser:
     def expect(self, expected):
         self.get_next_token()
         if self.token[0] != expected:
-            raise self.SyntaticalError(f"Expected {KeyWords().keyword_to_string(expected)} but got {KeyWords().keyword_to_string(self.token[0])}")
+            raise SyntaticalError(f"Expected {KeyWords().keyword_to_string(expected)} but got {KeyWords().keyword_to_string(self.token[0])}", self.index)
         if self.token[0] == KeyWords.LEFT_CURLY_BRACKET:
             self.enter_block()
         if self.token[0] == KeyWords.RIGHT_CURLY_BRACKET:
@@ -43,14 +38,14 @@ class IterativeSyntaticalAnalyser:
         return self
 
     def use_id(self, type, details = {}):
-        self.variable_stack += [self.token[1], self.current_level, self.current_block, type, details]
+        self.variable_buffer.append([self.token[1], self.current_level, type, details])
         return len(self.variable_buffer) - 1
     
     def update_buffer(self, index, new_type = None):
         buffer = self.variable_buffer[index]
-        buffer[4] = self.pop_details()
+        buffer[3] = self.pop_details()
         if new_type != None:
-            buffer[3] = new_type
+            buffer[2] = new_type
         self.variable_buffer[index] = buffer
         return self
     
@@ -62,7 +57,7 @@ class IterativeSyntaticalAnalyser:
     def enter_block(self):
         self.syntatical_variable_list += self.variable_buffer
         self.variable_buffer = []
-        self.current_block += 1
+        self.current_level += 1
 
     def leave_block(self):
         self.current_level -= 1
@@ -85,13 +80,13 @@ class IterativeSyntaticalAnalyser:
         elif self.token[0] == KeyWords.FUNCTION:
             self.DF()
         else:
-            raise self.SyntaticalError("Expected a type or a function definition")
+            raise SyntaticalError("Expected a type or a function definition", self.index)
         return self
     
     def T(self):
         self.get_next_token()
         if self.token[0] not in [KeyWords.ID] + TYPE_KEYWORDS:
-            raise self.SyntaticalError("Expected a type")
+            raise SyntaticalError("Expected a type", self.index)
         if self.token[0] == KeyWords.ID:
             self.use_id(type=TYPE_USAGE)
         return self
@@ -105,7 +100,7 @@ class IterativeSyntaticalAnalyser:
             self.expect(KeyWords.LEFT_SQUARE_BRACKET)\
                 .get_next_token()
             if (self.token[0] != KeyWords.INTEGER):
-                raise self.SyntaticalError("Expected integer between brackets")
+                raise SyntaticalError("Expected integer between brackets", self.index)
             self.details_buffer = {
                 "type": DETAIL_TYPE_ARRAY,
                 "number": self.token[1]
@@ -139,13 +134,13 @@ class IterativeSyntaticalAnalyser:
             return self.DC()
         if self.token[0] == KeyWords.RIGHT_CURLY_BRACKET:
             return self
-        raise self.SyntaticalError("Missing a right curly bracket or semicolon")
+        raise SyntaticalError("Missing a right curly bracket or semicolon", self.index)
     
     def DF(self):
         self.enter_block()
         self.get_next_token()
         if self.token[0] != KeyWords.ID:
-            raise self.SyntaticalError("Missing function identification")
+            raise SyntaticalError("Missing function identification", self.index)
         self.use_id(type=FUNCTION_DECLARATION)
         self.expect(KeyWords.LEFT_ROUND_BRACKET)\
             .LP()\
@@ -158,7 +153,7 @@ class IterativeSyntaticalAnalyser:
     def LP(self):
         self.get_next_token()
         if self.token[0] != KeyWords.ID:
-            raise self.SyntaticalError("Missing variable identification")
+            raise SyntaticalError("Missing variable identification", self.index)
         self.use_id(type=VARIABLE_DECLARATION)
         self.expect(KeyWords.COLON)\
             .T()\
@@ -168,7 +163,7 @@ class IterativeSyntaticalAnalyser:
             return self.LP()
         if self.token[0] == KeyWords.RIGHT_ROUND_BRACKET:
             return self
-        raise self.SyntaticalError("Missing a comma or right round bracket")
+        raise SyntaticalError("Missing a comma or right round bracket", self.index)
 
     def LIT(self):
         return self.expect(KeyWords.ID)\
@@ -179,7 +174,7 @@ class IterativeSyntaticalAnalyser:
         if self.token[0] == KeyWords.COMMA:
             self.get_next_token()
             if self.token[0] != KeyWords.ID:
-                raise self.SyntaticalError("Missing variable identification")
+                raise SyntaticalError("Missing variable identification", self.index)
             self.use_id(type=VARIABLE_DECLARATION)
             return self.LITV()
         return self.unget_token().T()
@@ -210,7 +205,7 @@ class IterativeSyntaticalAnalyser:
     def LV(self):
         self.get_next_token()
         if self.token[0] != KeyWords.ID:
-            raise self.SyntaticalError("Missing variable identification")
+            raise SyntaticalError("Missing variable identification", self.index)
         buffer_index = self.use_id(type=VARIABLE_USAGE)
         self.get_next_token()
         if self.token[0] == KeyWords.DOT:
@@ -230,7 +225,7 @@ class IterativeSyntaticalAnalyser:
     def OPEQ(self):
         self.get_next_token()
         if self.token[0] not in OPEQ:
-            raise self.SyntaticalError("Equal operation missing")
+            raise SyntaticalError("Equal operation missing", self.index)
         return self
     
     def EQ(self):
@@ -241,15 +236,22 @@ class IterativeSyntaticalAnalyser:
     def OPIT(self):
         self.get_next_token()
         if self.token[0] not in OPIT:
-            raise self.SyntaticalError("Missing in or of keyword")
+            raise SyntaticalError("Missing in or of keyword", self.index)
         return self
     
     def I(self):
-        return self.expect(KeyWords.VAR)\
-            .expect(KeyWords.ID)\
-            .OPIT()\
-            .expect(KeyWords.ID)\
-            .expect(KeyWords.RIGHT_CURLY_BRACKET)
+        self.expect(KeyWords.VAR)\
+            .get_next_token()
+        if self.token[0] != KeyWords.ID:
+            raise SyntaticalError("Missing variable identification", self.index)
+        self.use_id(type=VARIABLE_DECLARATION)
+        self.OPIT()
+        
+        self.get_next_token()
+        if self.token[0] != KeyWords.ID:
+            raise SyntaticalError("Missing variable for iteration", self.index)
+        self.use_id(type=VARIABLE_USAGE)
+        return self.expect(KeyWords.RIGHT_CURLY_BRACKET)
     
     def ELIF(self):
         self.get_next_token()
@@ -263,9 +265,9 @@ class IterativeSyntaticalAnalyser:
             return self.expect(KeyWords.LEFT_CURLY_BRACKET)\
                 .S()\
                 .expect(KeyWords.SEMICOLON)
-        if self.token[0] == KeyWords.SEMICOLON:
-            return self
-        raise self.SyntaticalError("Missing else, else_if or semicolon")
+        if self.token[0] != KeyWords.SEMICOLON:
+            raise SyntaticalError("Missing else, else_if or semicolon", self.index)
+        return self
     
     def RE(self):
         self.get_next_token()
@@ -355,11 +357,12 @@ class IterativeSyntaticalAnalyser:
                 .LPT()
         if self.token[0] == KeyWords.RIGHT_SQUARE_BRACKET:
             return self
-        raise self.SyntaticalError("Missing comma or right square brackets")
+        raise SyntaticalError("Missing comma or right square brackets", self.index)
     
     def VAL(self):
         self.get_next_token()
         if self.token[0] == KeyWords.ID:
+            self.use_id(type=VARIABLE_USAGE)
             return self
         return self.PT()
     
@@ -375,7 +378,7 @@ class IterativeSyntaticalAnalyser:
             return self
         if self.token[0] == KeyWords.COMMA:
             return self.KVP()
-        raise self.SyntaticalError("Missing comma or right square brackets")
+        raise SyntaticalError("Missing comma or right square brackets", self.index)
         
     def PT(self):
         self.get_next_token()
@@ -385,7 +388,7 @@ class IterativeSyntaticalAnalyser:
             return self.LPT()
         if self.token[0] == KeyWords.LEFT_CURLY_BRACKET:
             return self.KVP()
-        raise self.SyntaticalError("Invalid, missing brackets or simple value1")
+        raise SyntaticalError("Invalid, missing brackets or simple value", self.index)
     
     def LVO(self):
         self.get_next_token()
@@ -398,7 +401,7 @@ class IterativeSyntaticalAnalyser:
             return self.unget_token()
         if self.token[0] in [KeyWords.PLUS_PLUS, KeyWords.MINUS_MINUS]:
             return self.LV()
-        raise self.SyntaticalError("Invalid missing keyword or ++ or --")
+        raise SyntaticalError("Invalid missing keyword or ++ or --", self.index)
     
     def F(self):
         self.get_next_token()

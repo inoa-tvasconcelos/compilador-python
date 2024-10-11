@@ -58,7 +58,8 @@ class KeyWords:
     LEXICAL_ERROR = 41                  # Represents a Error that is not raised
     IN = 42                             # in
     OF = 43                             # of
-    RETURN = 65
+    WHILE = 44                          # while
+    RETURN = 65                         # return
     
     # Reserve types
     ARRAY = 42
